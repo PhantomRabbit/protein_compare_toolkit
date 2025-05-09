@@ -1,0 +1,10 @@
+[project]
+name = "protein-compare-toolkit"
+version = "0.1.0"
+dependencies = ["typer[all]", "biopython", "logomaker", "matplotlib", "numpy", "pandas", "scipy"]
+
+[project.scripts]
+protein-compare-toolkit = "protein_compare_toolkit.cli:app"
+
+[project.optional-dependencies]
+dev = ["pytest"]
