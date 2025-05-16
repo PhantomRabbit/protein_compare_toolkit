@@ -1,6 +1,6 @@
 [project]
 name = "protein-compare-toolkit"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = ["typer[all]", "biopython", "logomaker", "matplotlib", "numpy", "pandas", "scipy"]
 
 [project.scripts]

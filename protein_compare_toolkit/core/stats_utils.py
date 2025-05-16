@@ -88,6 +88,17 @@ def jensen_shannon_distance(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignme
     return jsd
 
 
+def alignment_to_consensus(aln: MultipleSeqAlignment):
+    '''Deduct a consensus sequence by finding the residues with the highest frequency at each position.'''
+    dist = alignment_to_distribution(aln)
+
+    c_seq = []
+    for d in dist:
+        c_seq.append(AA_SYMBOL[np.argmax(d)])
+
+    return c_seq
+
+
 def alignment_to_distribution(aln: MultipleSeqAlignment):
     '''Normalise counts of residues in a alignment so the sum is 1 for all positions.'''
     aln_len = len(aln[0])
