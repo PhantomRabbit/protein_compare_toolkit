@@ -1,6 +1,8 @@
 '''
 Modules for drawing and saving sequence logos.
 '''
+from pathlib import Path
+
 from Bio.Align import MultipleSeqAlignment
 from pandas import DataFrame, RangeIndex
 
@@ -14,7 +16,7 @@ AA_SYMBOL = "ACDEFGHIKLMNPQRSTVWY"
 AA_COUNT = 20
 
 def plot_sdi_logo(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignment,
-                  start: int, end: int, output_file: str):
+                  start: int, end: int, output_file: Path):
     '''
     Draw a sequence logo using the selection-differentiation index of the two families of proteins.
 
@@ -23,7 +25,7 @@ def plot_sdi_logo(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignment,
     df1, df2 = sdi_logo_matrix(aln1, aln2, start, end)
     df2 = -df2 # Flip bottom logo values to be drawn on the bottom.
     # Since Logomaker doesn't support using repeated glyph in the same logo, this code forces it to
-    # draw two logos with positive and negative height respectively on the same axes to achieve the
+    # draw two logos with positive and negative height respectively on the same axis to achieve the
     # effct.
 
     # Dynamically set figure width
@@ -36,8 +38,9 @@ def plot_sdi_logo(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignment,
     lm.Logo(df=df2, ax=ax, color_scheme="skylign_protein", fade_below=.5)
     # Adjust appearance.
     ax.axhline(0, color='black', linewidth=1)
+    ax.set_xlim(start-.5, end+.5)
     ax.set_ylim(-1, 1)
-    ax.set_xlim(start - 1, end)
+    ax.set_xticks(np.arange(start, end+1, 1))
     ax.set_xlabel("Residue position")
     ax.set_ylabel("Selection-differentiation index")
 
@@ -52,8 +55,8 @@ def sdi_logo_matrix(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignment, star
     dist1 = alignment_to_distribution(aln1)
     dist2 = alignment_to_distribution(aln2)
 
-    df1 = DataFrame(sdi1[:, np.newaxis] * dist1, RangeIndex(start - 1, end), list(AA_SYMBOL))
-    df2 = DataFrame(sdi2[:, np.newaxis] * dist2, RangeIndex(start - 1, end), list(AA_SYMBOL))
+    df1 = DataFrame(sdi1[:, np.newaxis] * dist1, RangeIndex(start, end+1), list(AA_SYMBOL))
+    df2 = DataFrame(sdi2[:, np.newaxis] * dist2, RangeIndex(start, end+1), list(AA_SYMBOL))
     # Total height represents sdi value;
     # Symbol height represents relative frequency.
 

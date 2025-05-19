@@ -1,5 +1,10 @@
+'''
+All the commands relevant to the use of Selection-Differentiation Index.
+
+logo: plot a sequence logo within given range.
+rank: rank alignment positions by their SDI value.
+'''
 from pathlib import Path
-from enum import Enum
 from typing import Optional
 
 import typer
@@ -9,13 +14,6 @@ import pandas as pd
 from protein_compare_toolkit.core.align_parser import read_alignment
 from protein_compare_toolkit.core.graph_utils import plot_sdi_logo
 from protein_compare_toolkit.core.stats_utils import select_diff_index, alignment_to_consensus
-
-class SortBy(str, Enum):
-    '''Enum for the --sort-by option of the rank command.'''
-    aln1 = "aln1",
-    aln2 = "aln2",
-    avrg = "avrg"
-
 
 app = typer.Typer()
 
@@ -126,7 +124,6 @@ def rank(
     sdi1, sdi2 = select_diff_index(sliced1, sliced2)
     c_seq1 = alignment_to_consensus(sliced1)
     c_seq2 = alignment_to_consensus(sliced2)
-    avg_sdi = (sdi1 + sdi2) / 2
     pos = list(range(start, end + 1))
 
     col = [("Position", ""),
