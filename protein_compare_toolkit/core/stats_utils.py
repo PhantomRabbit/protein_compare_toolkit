@@ -6,6 +6,7 @@ It also includes functions that calculates the two key metrics, Jensen-Shannon D
 information content, and associated utility functions.
 '''
 from Bio.Align import MultipleSeqAlignment
+from pandas import DataFrame
 from scipy import spatial, stats
 import numpy as np
 
@@ -56,7 +57,7 @@ def info_content(alignment: MultipleSeqAlignment):
     alignment_len = len(alignment[0])
     r0 = np.log2(20)
     r = np.zeros(alignment_len)
-    f = alignment_to_distribution(alignment)
+    f = aln_dist(alignment)
     e = 1 / np.log(2) * (20 - 1) / (2 * seq_count) #Error correction.
 
     for i in range(alignment_len): #Formula reference: https://en.wikipedia.org/wiki/Sequence_logo
@@ -79,8 +80,8 @@ def jensen_shannon_distance(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignme
     aln_len = len(aln1[0])
     jsd = np.zeros(aln_len)
 
-    p = alignment_to_distribution(aln1)
-    q = alignment_to_distribution(aln2)
+    p = aln_dist(aln1)
+    q = aln_dist(aln2)
 
     for k in range(aln_len):
         jsd[k] = spatial.distance.jensenshannon(p[k], q[k], base=2)
@@ -88,33 +89,77 @@ def jensen_shannon_distance(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignme
     return jsd
 
 
-def alignment_to_consensus(aln: MultipleSeqAlignment):
-    '''Deduct a consensus sequence by finding the residues with the highest frequency at each position.'''
-    dist = alignment_to_distribution(aln)
+def consensus_seq(aln: MultipleSeqAlignment):
+    '''Return a consensus sequence and its diagnosis from an alignment.'''
+    aln_len = len(aln[0])
+    dist = aln_dist(aln)
 
-    c_seq = []
-    for d in dist:
-        c_seq.append(AA_SYMBOL[np.argmax(d)])
+    # Deduct the consensus sequence and corresponding probability.
+    aa_idc = []
+    seq = []
+    p_max = np.zeros(aln_len)
+    for i in range(aln_len):
+        d = dist[i]
+        p_max[i] = np.max(d)
+        aa_idx = np.argmax(d)
+        aa_idc.append(aa_idx)
+        seq.append(AA_SYMBOL[aa_idx])
 
-    return c_seq
+    # Calculate CI using numerical estimation of the posterior dirichlet distribution.
+    ci_lower = np.zeros(aln_len)
+    ci_upper = np.zeros(aln_len)
+    for i in range(aln_len):
+        dir = stats.dirichlet.rvs(dist[i], 100000)[:, aa_idc[i]]
+        ci_lower[i], ci_upper[i] = hpd(dir)
+
+    df = DataFrame(
+        {
+        "id": seq,
+        "p": p_max,
+        "lower": ci_lower,
+        "upper": ci_upper
+        }
+    )
+        
+    return df
 
 
-def alignment_to_distribution(aln: MultipleSeqAlignment):
-    '''Normalise counts of residues in a alignment so the sum is 1 for all positions.'''
+def aln_dist(aln: MultipleSeqAlignment):
+    '''Use Bayesian inference to calculate the expected distribution of residues.'''
     aln_len = len(aln[0])
     dist = np.zeros((aln_len, AA_COUNT))
 
     for i in range(aln_len):
-        d = [aln[:, i].count(aa) for aa in AA_SYMBOL]
-        s = np.sum(d)
-        if s == 0:
-            d = np.full(AA_COUNT, 1 / AA_COUNT)
-            # return a normal dist for gaps for better error handling.
-        else:
-            d = np.array(d) / s
+        d = [aln[:, i].count(aa) + 0.05 for aa in AA_SYMBOL] # pseudo-count from uninformative prior.
+        d = np.array(d) / np.sum(d)
         dist[i] = d
 
     return dist
+
+
+def hpd(samples, ci=0.95):
+    '''Numerical HPD estimate from sorted samples.'''
+    if not (0 < ci < 1):
+        raise ValueError("Credible interval must be between 0 and 1.")
+
+    samples = np.sort(np.asarray(samples))
+    n = len(samples)
+    interval_idx_inc = int(np.floor(ci * n))
+
+    if interval_idx_inc < 1:
+        raise ValueError("Too few samples for requested credible interval.")
+
+    n_intervals = n - interval_idx_inc
+    if n_intervals < 1:
+        raise ValueError("Not enough samples to compute HPD for the given CI.")
+
+    # Build all possible intervals of desired size
+    interval_starts = samples[:n_intervals]
+    interval_ends = samples[interval_idx_inc:]
+    widths = interval_ends - interval_starts
+
+    min_idx = np.argmin(widths)
+    return interval_starts[min_idx], interval_ends[min_idx]
 
 
 def validate_alignment_lengths(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignment):

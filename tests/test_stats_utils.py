@@ -4,10 +4,10 @@ from Bio.Align import MultipleSeqAlignment
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from protein_compare_toolkit.core.stats_utils import alignment_to_distribution, jensen_shannon_distance
+from protein_compare_toolkit.core.stats_utils import aln_dist, jensen_shannon_distance
 from protein_compare_toolkit.core.stats_utils import info_content, select_diff_index, AA_COUNT
 
-def test_alignment_to_distribution_simple_case():
+def test_aln_dist_simple_case():
     # Create a toy alignment: 3 sequences of length 4
     aln = MultipleSeqAlignment([
         SeqRecord(Seq("ACDE"), id="seq1"),
@@ -16,7 +16,7 @@ def test_alignment_to_distribution_simple_case():
     ])
 
     # Run the function
-    dist = alignment_to_distribution(aln)
+    dist = aln_dist(aln)
 
     # Shape should be (4 positions, 20 amino acids)
     assert dist.shape == (4, AA_COUNT)
@@ -24,22 +24,16 @@ def test_alignment_to_distribution_simple_case():
     # Each column in the 4 rows should sum to 1 (perfect agreement on A, C, D, E)
     for i in range(4):
         assert np.isclose(np.sum(dist[i]), 1.0)
-        # Ensure the correct amino acid is fully represented (probability 1.0)
-        aa = "ACDE"[i]
-        aa_index = "ACDEFGHIKLMNPQRSTVWY".index(aa)
-        assert dist[i][aa_index] == 1.0
-        # All others should be zero
-        assert np.isclose(np.sum(dist[i]) - dist[i][aa_index], 0.0)
 
 
-def test_alignment_to_distribution_mixed_residues():
+def test_aln_dist_mixed_residues():
     aln = MultipleSeqAlignment([
         SeqRecord(Seq("ACDE"), id="seq1"),
         SeqRecord(Seq("ACDF"), id="seq2"),
         SeqRecord(Seq("ACDG"), id="seq3"),
     ])
 
-    dist = alignment_to_distribution(aln)
+    dist = aln_dist(aln)
 
     # First 3 positions should still be uniform
     for i in range(3):
@@ -59,14 +53,14 @@ def test_alignment_to_distribution_mixed_residues():
         assert np.isclose(dist[3][idx], 0.0)
 
 
-def test_alignment_to_distribution_with_gaps():
+def test_aln_dist_with_gaps():
     aln = MultipleSeqAlignment([
         SeqRecord(Seq("A--E"), id="seq1"),
         SeqRecord(Seq("A--E"), id="seq2"),
         SeqRecord(Seq("A--E"), id="seq3"),
     ])
 
-    dist = alignment_to_distribution(aln)
+    dist = aln_dist(aln)
 
     # Position 0 and 3 should be valid (A and E)
     idx_a = "ACDEFGHIKLMNPQRSTVWY".index("A")
@@ -79,7 +73,7 @@ def test_alignment_to_distribution_with_gaps():
     assert np.allclose(dist[2], 1 / AA_COUNT)
 
 
-def test_alignment_to_distribution_weighted_counts():
+def test_aln_dist_weighted_counts():
     aln = MultipleSeqAlignment([
         SeqRecord(Seq("A"), id="seq1"),
         SeqRecord(Seq("A"), id="seq2"),
@@ -88,7 +82,7 @@ def test_alignment_to_distribution_weighted_counts():
         SeqRecord(Seq("C"), id="seq5"),
     ])
 
-    dist = alignment_to_distribution(aln)
+    dist = aln_dist(aln)
 
     # Position 0: 2 A's, 3 C's => A: 2/5, C: 3/5
     idx_a = "ACDEFGHIKLMNPQRSTVWY".index("A")

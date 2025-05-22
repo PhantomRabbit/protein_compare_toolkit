@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import logomaker as lm
 
-from protein_compare_toolkit.core.stats_utils import alignment_to_distribution, select_diff_index
+from protein_compare_toolkit.core.stats_utils import aln_dist, select_diff_index
 
 AA_SYMBOL = "ACDEFGHIKLMNPQRSTVWY"
 AA_COUNT = 20
@@ -52,8 +52,8 @@ def plot_sdi_logo(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignment,
 def sdi_logo_matrix(aln1: MultipleSeqAlignment, aln2: MultipleSeqAlignment, start: int, end: int):
     '''Make a pandas dataframe that the LogoMaker package can use to draw sequence logo with.'''
     sdi1, sdi2 = select_diff_index(aln1, aln2)
-    dist1 = alignment_to_distribution(aln1)
-    dist2 = alignment_to_distribution(aln2)
+    dist1 = aln_dist(aln1)
+    dist2 = aln_dist(aln2)
 
     df1 = DataFrame(sdi1[:, np.newaxis] * dist1, RangeIndex(start, end+1), list(AA_SYMBOL))
     df2 = DataFrame(sdi2[:, np.newaxis] * dist2, RangeIndex(start, end+1), list(AA_SYMBOL))

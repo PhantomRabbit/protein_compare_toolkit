@@ -13,7 +13,7 @@ import pandas as pd
 
 from protein_compare_toolkit.core.align_parser import read_alignment
 from protein_compare_toolkit.core.graph_utils import plot_sdi_logo
-from protein_compare_toolkit.core.stats_utils import select_diff_index, alignment_to_consensus
+from protein_compare_toolkit.core.stats_utils import select_diff_index, consensus_seq
 
 app = typer.Typer()
 
@@ -122,22 +122,35 @@ def rank(
     sliced2 = aln2[:, start-1:end]
 
     sdi1, sdi2 = select_diff_index(sliced1, sliced2)
-    c_seq1 = alignment_to_consensus(sliced1)
-    c_seq2 = alignment_to_consensus(sliced2)
+    c_seq1 = consensus_seq(sliced1)
+    c_seq2 = consensus_seq(sliced2)
     pos = list(range(start, end + 1))
 
     col = [("Position", ""),
            ("Alignment 1", "SDI"),
            ("Alignment 1", "Identity"),
+           ("Alignment 1", "P"),
+           ("Alignment 1", "Lower"),
+           ("Alignment 1", "Upper"),
            ("Alignment 2", "SDI"),
-           ("Alignment 2", "Identity")]
+           ("Alignment 2", "Identity"),
+           ("Alignment 2", "P"),
+           ("Alignment 2", "Lower"),
+           ("Alignment 2", "Upper")
+           ]
 
     df = pd.DataFrame({
         "Position": pos,
         ("Alignment 1", "SDI"): sdi1,
-        ("Alignment 1", "Identity"): c_seq1,
+        ("Alignment 1", "Identity"): list(c_seq1["id"]),
+        ("Alignment 1", "P"): list(c_seq1["p"]),
+        ("Alignment 1", "Lower"): list(c_seq1["lower"]),
+        ("Alignment 1", "Upper"): list(c_seq1["upper"]),
         ("Alignment 2", "SDI"): sdi2,
-        ("Alignment 2", "Identity"): c_seq2
+        ("Alignment 2", "Identity"): list(c_seq2["id"]),
+        ("Alignment 2", "P"): list(c_seq2["p"]),
+        ("Alignment 2", "Lower"): list(c_seq2["lower"]),
+        ("Alignment 2", "Upper"): list(c_seq2["upper"])
     })
 
     if sort_by:
@@ -155,7 +168,7 @@ def rank(
     df = df[:top]
 
     if output_mode: # --peek
-        typer.echo(df.to_string(index=False, justify="center"))
+        typer.echo(df.to_string(index=False, justify="center", float_format='{:,.3f}'.format))
     else:
         df.to_csv(save_as, index=False)
         typer.echo(f"Ranking saved to {str(save_as)}")
