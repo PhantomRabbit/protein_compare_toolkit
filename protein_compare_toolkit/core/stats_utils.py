@@ -130,7 +130,8 @@ def aln_dist(aln: MultipleSeqAlignment):
     dist = np.zeros((aln_len, AA_COUNT))
 
     for i in range(aln_len):
-        d = [aln[:, i].count(aa) + 0.05 for aa in AA_SYMBOL] # pseudo-count from uninformative prior.
+        # pseudo-count from uninformative prior.
+        d = [aln[:, i].count(aa) + np.finfo(np.float64).tiny for aa in AA_SYMBOL]
         d = np.array(d) / np.sum(d)
         dist[i] = d
 
@@ -139,7 +140,7 @@ def aln_dist(aln: MultipleSeqAlignment):
 
 def hpd(samples, ci=0.95):
     '''Numerical HPD estimate from sorted samples.'''
-    if not (0 < ci < 1):
+    if not 0 < ci < 1:
         raise ValueError("Credible interval must be between 0 and 1.")
 
     samples = np.sort(np.asarray(samples))
